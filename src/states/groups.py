@@ -32,6 +32,7 @@ class CustomOrderStates(StatesGroup):
 
 
 class QuizStates(StatesGroup):
+    choosing_gender = State()
     q1 = State()
     q2 = State()
     q3 = State()
@@ -40,6 +41,7 @@ class QuizStates(StatesGroup):
 
 
 class TotemStates(StatesGroup):
+    choosing_gender = State()
     q1 = State()
     q2 = State()
     q3 = State()
