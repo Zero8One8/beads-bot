@@ -1,3 +1,6 @@
+"""
+Исправленная БД с thread-safety
+"""
 import sqlite3
 import threading
 import logging
@@ -8,19 +11,23 @@ from src.config import Config
 
 logger = logging.getLogger(__name__)
 
+
 class Database:
+    """Thread-safe работа с SQLite."""
+    
     _local = threading.local()
     
     def __init__(self, db_path: str = str(Config.DB_PATH)):
         self.db_path = db_path
     
     def get_connection(self) -> sqlite3.Connection:
+        """Получить соединение для текущего потока."""
         if not hasattr(self._local, 'connection') or not self._local.connection:
             self._local.connection = self._create_connection()
         return self._local.connection
     
     def _create_connection(self) -> sqlite3.Connection:
-        # Гарантируем, что папка для БД существует.
+        """Создать новое соединение."""
         db_path = Path(self.db_path)
         if db_path.parent and not db_path.parent.exists():
             db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -31,34 +38,55 @@ class Database:
             check_same_thread=False
         )
         conn.row_factory = sqlite3.Row
+        
+        # Оптимизация для production
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA synchronous = NORMAL")
         conn.execute("PRAGMA cache_size = -64000")
         conn.execute("PRAGMA busy_timeout = 30000")
         conn.execute("PRAGMA temp_store = MEMORY")
-        logger.debug(f"Создано соединение с БД для потока {threading.get_ident()}")
+        
+        logger.debug(f"DB connection created for thread {threading.get_ident()}")
         return conn
     
     @contextmanager
     def connection(self) -> Generator[sqlite3.Connection, None, None]:
+        """Context manager для соединения."""
         conn = self.get_connection()
         try:
             yield conn
             conn.commit()
+        except sqlite3.IntegrityError as e:
+            conn.rollback()
+            logger.error(f"DB integrity error: {e}")
+            raise
         except Exception as e:
             conn.rollback()
-            logger.error(f"Ошибка БД: {e}")
+            logger.error(f"DB error: {e}")
             raise
     
     @contextmanager
-    def cursor(self) -> Generator[sqlite3.Cursor, None, None]:
-        with self.connection() as conn:
+    def cursor(self):
+        """Context manager для курсора."""
+        conn = self.get_connection()
+        try:
             yield conn.cursor()
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"DB cursor error: {e}")
+            raise
     
-    def close_all(self):
+    def close(self):
+        """Закрыть соединение для текущего потока."""
         if hasattr(self._local, 'connection') and self._local.connection:
-            self._local.connection.close()
-            delattr(self._local, 'connection')
-            logger.info("Соединения с БД закрыты")
+            try:
+                self._local.connection.close()
+            except Exception as e:
+                logger.error(f"Error closing connection: {e}")
+            finally:
+                self._local.connection = None
 
+
+# Глобальный экземпляр БД
 db = Database()
