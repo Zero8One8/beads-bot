@@ -107,12 +107,14 @@ def seed_products():
         for name, price, cat_id, desc, image in products:
             c.execute("INSERT INTO bracelets (name, description, price, image_url, category_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
                       (name, desc, price, image, cat_id, datetime.now()))
+        
+        workouts = [
             ("Йога с камнями — базовый комплекс", 30, "intermediate",
-             "Классические асаны с камнями для усиления практики.", ""),
-        ]
-        for name, price, level, desc, image in workouts:
-            c.execute("INSERT INTO workouts (name, description, price, level, image_url, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                      (name, desc, price, level, image, datetime.now()))
+             "Классические асаны с камнями для усиления практики.\n\n"
+             "1. Шавасана (5 мин): разложи камни по чакрам\n"
+             "2. Кошка-Корова (3 мин): камень у сердца\n"
+             "3. Собака мордой вниз (3 мин): камень на мат перед собой\n"
+             "4. Воин I и II (по 3 мин каждый): камень в руке\n"
              "5. Скрутка (3 мин): камень на живот\n"
              "6. Шавасана (5 мин): камни по чакрам, интеграция\n\n"
              "Лучшие камни: любые из твоего браслета"),
