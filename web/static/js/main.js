@@ -110,9 +110,51 @@ async function submitOrder(e) {
   }
 }
 
+function closeSiteEntryPopup() {
+  const overlay = document.getElementById('site-entry-popup');
+  if (!overlay) return;
+  overlay.classList.remove('visible');
+  overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+}
+
+function createSiteEntryPopup() {
+  if (window.__siteEntryPopupShown) return;
+  window.__siteEntryPopupShown = true;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'site-entry-popup';
+  overlay.className = 'site-popup-overlay';
+  overlay.innerHTML = `
+    <div class="site-popup">
+      <button class="site-popup-close" type="button" aria-label="Закрыть окно">×</button>
+      <div class="site-popup-content">
+        <h2>Добро пожаловать на Магию Камней</h2>
+        <p>Приятно, что вы здесь. Пройдите бесплатный квиз — он поможет подобрать камень под вашу энергию.</p>
+        <div class="site-popup-actions">
+          <a href="/quiz" class="btn btn--gold">Пройти квиз</a>
+          <button id="site-popup-close-button" class="btn btn--outline" type="button">Закрыть</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('.site-popup-close').addEventListener('click', closeSiteEntryPopup);
+  overlay.querySelector('#site-popup-close-button').addEventListener('click', closeSiteEntryPopup);
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay) closeSiteEntryPopup();
+  });
+
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+}
+
 // ── INIT ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   quiz.init();
+  if (['/', '/index.html'].includes(location.pathname)) {
+    createSiteEntryPopup();
+  }
 
   const orderForm = document.getElementById('order-form');
   if (orderForm) orderForm.addEventListener('submit', submitOrder);
