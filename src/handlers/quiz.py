@@ -1,33 +1,19 @@
 """
-Квиз "Узнай свой камень" и "Тотемный камень".
-Мощные вопросы с разделением мужчина/женщина/подарок.
-Результат — из базы знаний (файлы knowledge_base).
+Квиз "Узнай свой камень" — перенос из сайта.
 """
 import logging
-import json
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from src.utils.text_loader import ContentLoader
-from src.services.analytics import FunnelTracker
+from src.utils.crystals import crystals
 
 logger = logging.getLogger(__name__)
 router = Router()
 
 
 class QuizStates(StatesGroup):
-    choosing_gender = State()
-    q1 = State()
-    q2 = State()
-    q3 = State()
-    q4 = State()
-    q5 = State()
-
-
-class TotemStates(StatesGroup):
-    choosing_gender = State()
     q1 = State()
     q2 = State()
     q3 = State()
@@ -36,132 +22,174 @@ class TotemStates(StatesGroup):
 
 
 # ──────────────────────────────────────────────────────────────
-# ВОПРОСЫ КВИЗА — по типу пользователя
+# ВОПРОСЫ КВИЗА — из сайта
 # ──────────────────────────────────────────────────────────────
 
-QUIZ_QUESTIONS = {
-    'female': [
-        {
-            'text': '✨ Что сейчас происходит в твоей жизни?\n\nБудь честна с собой — именно это определит твой камень.',
-            'options': [
-                ('💔 Боль в сердце — разрыв, предательство, потеря', {'rose_quartz': 3, 'rhodonite': 3, 'lepidolite': 2}),
-                ('🌪 Хаос и тревога — не могу успокоиться', {'amethyst': 3, 'lepidolite': 3, 'moonstone': 2}),
-                ('💰 Хочу большего — денег, успеха, признания', {'citrine': 3, 'tiger_eye': 2, 'pyrite': 2}),
-                ('🌿 Ищу себя — кто я, зачем живу, какой мой путь', {'labradorite': 3, 'moonstone': 3, 'amethyst': 2}),
-            ]
-        },
-        {
-            'text': '💫 Каким словом ты бы описала своё внутреннее состояние прямо сейчас?',
-            'options': [
-                ('🥀 Истощена — отдаю больше, чем получаю', {'rose_quartz': 3, 'rhodonite': 2, 'carnelian': 2}),
-                ('⚡ На взводе — всё раздражает, нет покоя', {'lepidolite': 3, 'amethyst': 2, 'blue_aventurine': 2}),
-                ('🌫 Потеряна — нет ориентиров, нет опоры', {'black_tourmaline': 2, 'hematite': 2, 'labradorite': 3}),
-                ('🌟 Готова к переменам — чувствую, что пора', {'labradorite': 3, 'citrine': 2, 'moonstone': 2}),
-            ]
-        },
-        {
-            'text': '🔮 Что тебе сейчас нужнее всего?',
-            'options': [
-                ('🛡 Защита — от чужой энергии, зависти, манипуляций', {'black_tourmaline': 3, 'obsidian': 2, 'hematite': 2}),
-                ('💞 Любовь — к себе, принятие, нежность', {'rose_quartz': 3, 'rhodonite': 2, 'kunzite': 2}),
-                ('🧠 Ясность — понять что делать, принять решение', {'sodalite': 3, 'fluorite': 2, 'clear_quartz': 2}),
-                ('🔥 Энергия — сил нет, всё даётся с трудом', {'carnelian': 3, 'garnet': 2, 'citrine': 2}),
-            ]
-        },
-        {
-            'text': '🌙 Как ты чувствуешь себя среди людей?',
-            'options': [
-                ('😶 Не могу сказать "нет" — всегда со всеми соглашаюсь', {'amazonite': 3, 'sodalite': 2, 'rose_quartz': 1}),
-                ('😤 Всё держу в себе — боюсь быть непонятой', {'blue_aventurine': 3, 'sodalite': 2, 'moonstone': 2}),
-                ('🦋 Чувствую себя не такой как все — особенной', {'labradorite': 3, 'moonstone': 2, 'amethyst': 2}),
-                ('🌊 Принимаю всё на себя — эмпат, устаю от людей', {'black_tourmaline': 3, 'hematite': 2, 'lepidolite': 2}),
-            ]
-        },
-        {
-            'text': '⭐ Какой результат ты хочешь получить от камня?',
-            'options': [
-                ('🌸 Больше любви и гармонии в жизни', {'rose_quartz': 3, 'moonstone': 2, 'rhodonite': 2}),
-                ('💪 Силу двигаться вперёд несмотря ни на что', {'garnet': 3, 'tiger_eye': 2, 'carnelian': 3}),
-                ('🔐 Защиту от всего плохого', {'black_tourmaline': 3, 'obsidian': 2, 'hematite': 2}),
-                ('🌟 Интуицию и связь с собой', {'amethyst': 3, 'labradorite': 2, 'moonstone': 3}),
-            ]
-        },
-    ],
-    'male': [
-        {
-            'text': '⚔️ Что сейчас происходит в твоей жизни?\n\nОтвечай честно — именно это покажет твой камень.',
-            'options': [
-                ('📉 Бизнес или карьера — нужен прорыв, застрял', {'citrine': 3, 'tiger_eye': 3, 'pyrite': 2}),
-                ('😤 Конфликты — давление со всех сторон', {'black_tourmaline': 3, 'hematite': 2, 'obsidian': 2}),
-                ('🌫 Потерял цель — не понимаю зачем и куда', {'labradorite': 3, 'sodalite': 2, 'clear_quartz': 2}),
-                ('💔 Отношения — боль, одиночество, непонимание', {'rhodonite': 3, 'rose_quartz': 2, 'lepidolite': 2}),
-            ]
-        },
-        {
-            'text': '🧠 Как ты принимаешь решения?',
-            'options': [
-                ('🔥 На эмоциях — потом жалею', {'tiger_eye': 3, 'sodalite': 2, 'hematite': 2}),
-                ('🧊 Долго думаю — боюсь ошибиться', {'labradorite': 2, 'clear_quartz': 3, 'fluorite': 2}),
-                ('💭 Интуитивно — но не всегда доверяю себе', {'amethyst': 3, 'moonstone': 2, 'labradorite': 2}),
-                ('👥 Советуюсь — зависимость от чужого мнения', {'sodalite': 3, 'amazonite': 2, 'tiger_eye': 2}),
-            ]
-        },
-        {
-            'text': '⚡ Чего тебе не хватает прямо сейчас?',
-            'options': [
-                ('💰 Денег и финансовой уверенности', {'citrine': 3, 'pyrite': 3, 'tiger_eye': 2}),
-                ('🛡 Защиты от чужого влияния и зависти', {'black_tourmaline': 3, 'obsidian': 2, 'hematite': 2}),
-                ('🔥 Энергии и желания что-то делать', {'garnet': 3, 'carnelian': 3, 'citrine': 2}),
-                ('🧘 Покоя — устал от постоянного напряжения', {'lepidolite': 3, 'amethyst': 2, 'sodalite': 2}),
-            ]
-        },
-        {
-            'text': '🎯 Что мешает тебе достигать целей?',
-            'options': [
-                ('😨 Страх — не берусь за то, чего хочу', {'tiger_eye': 3, 'carnelian': 2, 'garnet': 2}),
-                ('🌪 Рассеянность — не могу сфокусироваться', {'fluorite': 3, 'sodalite': 2, 'clear_quartz': 2}),
-                ('😔 Неуверенность — сомневаюсь в себе', {'citrine': 3, 'tiger_eye': 2, 'pyrite': 3}),
-                ('🧱 Внешние препятствия — как будто всё против', {'black_tourmaline': 2, 'labradorite': 3, 'obsidian': 2}),
-            ]
-        },
-        {
-            'text': '🌟 Каким ты хочешь стать благодаря камню?',
-            'options': [
-                ('👑 Уверенным лидером, которого уважают', {'tiger_eye': 3, 'citrine': 2, 'pyrite': 2}),
-                ('🧙 Мудрым — понимать людей и ситуации насквозь', {'labradorite': 3, 'amethyst': 2, 'sodalite': 3}),
-                ('⚡ Энергичным и целеустремлённым', {'garnet': 3, 'carnelian': 3, 'citrine': 2}),
-                ('🏔 Спокойным — непробиваемым для любого негатива', {'black_tourmaline': 3, 'hematite': 3, 'obsidian': 2}),
-            ]
-        },
-    ],
-    'gift': [
-        {
-            'text': '🎁 Кому вы выбираете подарок?',
-            'options': [
-                ('👩 Женщине — близкой, любимой, подруге', {'rose_quartz': 3, 'moonstone': 3, 'amethyst': 2}),
-                ('👨 Мужчине — другу, партнёру, родственнику', {'tiger_eye': 3, 'black_tourmaline': 2, 'citrine': 3}),
-                ('👧 Ребёнку или подростку', {'rose_quartz': 2, 'clear_quartz': 3, 'green_aventurine': 3}),
-                ('👴👵 Пожилому человеку — родителям, бабушке/дедушке', {'rhodonite': 2, 'jade': 3, 'rose_quartz': 2}),
-            ]
-        },
-        {
-            'text': '💝 По какому поводу вы дарите?',
-            'options': [
-                ('🎂 День рождения — хочу пожелать счастья', {'citrine': 2, 'rose_quartz': 3, 'green_aventurine': 2}),
-                ('💑 Романтический повод — любовь, годовщина', {'rose_quartz': 3, 'rhodonite': 2, 'moonstone': 2}),
-                ('🌱 Новый этап — работа, переезд, начало чего-то', {'citrine': 3, 'tiger_eye': 2, 'labradorite': 2}),
-                ('💙 Хочу поддержать — человеку сейчас тяжело', {'lepidolite': 3, 'rhodonite': 3, 'amethyst': 2}),
-            ]
-        },
-        {
-            'text': '🌿 Что вы знаете об этом человеке?',
-            'options': [
-                ('😰 Много стрессует, всё держит в себе', {'lepidolite': 3, 'amethyst': 3, 'blue_aventurine': 2}),
-                ('💸 Мечтает о финансовом росте и успехе', {'citrine': 3, 'pyrite': 2, 'tiger_eye': 3}),
-                ('💞 Открытый и чувствительный, ищет любовь', {'rose_quartz': 3, 'moonstone': 2, 'rhodonite': 2}),
-                ('🔮 Духовный, интересуется эзотерикой', {'amethyst': 3, 'labradorite': 3, 'clear_quartz': 2}),
-            ]
-        },
+QUIZ_QUESTIONS = [
+    {
+        'text': 'Что сейчас доминирует в вашем внутреннем состоянии?\n\nВыберите то, что наиболее точно описывает ваш текущий эмоциональный фон.',
+        'options': [
+            ('Тревога, беспокойство, ощущение угрозы', ['Тревога', 'Защита', 'Страхи']),
+            ('Апатия, потеря смысла, эмоциональное выгорание', ['Выгорание', 'Усталость', 'Апатия']),
+            ('Гнев, раздражительность, внутреннее напряжение', ['Стресс', 'Гнев', 'Конфликты']),
+            ('Грусть, ощущение утраты, одиночество', ['Обиды', 'Потеря', 'Одиночество']),
+            ('Рассеянность, потеря фокуса и концентрации', ['Концентрация', 'Ясность', 'Фокус']),
+            ('Спокойствие, умиротворение — хочу углубить это состояние', ['Гармония', 'Баланс', 'Медитация', 'Спокойствие']),
+            ('Любовь, благодарность — хочу усилить и направить эту энергию', ['Любовь', 'Исцеление', 'Сердечная', 'Гармония']),
+        ]
+    },
+    {
+        'text': 'Какая сфера вашей жизни требует наибольшего внимания?\n\nОпределите приоритетное направление для работы с энергией.',
+        'options': [
+            ('Эмоциональное здоровье и внутренний баланс', ['Баланс', 'Гармония', 'Исцеление']),
+            ('Отношения — доверие, близость, принятие', ['Обиды', 'Потеря', 'Самооценка', 'Любовь']),
+            ('Карьера, финансы, реализация целей', ['Мотивация', 'Уверенность', 'Успех', 'Финансы']),
+            ('Интуиция, духовное развитие, самопознание', ['Интуиция', 'Ясность', 'Медитация', 'Мудрость']),
+            ('Физическое самочувствие, восстановление сил', ['Здоровье', 'Усталость', 'Энергия', 'Восстановление']),
+        ]
+    },
+    {
+        'text': 'Как вы ощущаете свою энергию прямо сейчас?\n\nЧестная оценка ресурсного состояния — ключ к точной рекомендации.',
+        'options': [
+            ('Истощение — ресурса нет, нужна мягкая подпитка', ['Усталость', 'Выгорание', 'Восстановление']),
+            ('Нестабильность — перепады, непредсказуемые эмоции', ['Баланс', 'Стресс', 'Гармония']),
+            ('Блокировка — энергия есть, но она заперта внутри', ['Блокировки', 'Страхи', 'Трансформация']),
+            ('Избыточность — слишком много, не могу направить', ['Концентрация', 'Фокус', 'Заземление']),
+            ('Стабильность — хочу углубить практику и рост', ['Интуиция', 'Мудрость', 'Медитация']),
+        ]
+    },
+    {
+        'text': 'Какой тип поддержки вам нужен от камня?\n\nКаждый минерал работает по-разному — определите вектор.',
+        'options': [
+            ('Защита — щит от негатива, энергетических атак и сглаза', ['Защита', 'Тревога', 'Заземление']),
+            ('Исцеление — освобождение от старых ран, обид и травм', ['Исцеление', 'Обиды', 'Потеря', 'Трансформация']),
+            ('Активация — пробуждение внутренней силы и решимости действовать', ['Мотивация', 'Уверенность', 'Энергия', 'Успех']),
+            ('Ясность — обострение интуиции и глубинное понимание ситуации', ['Ясность', 'Интуиция', 'Концентрация']),
+            ('Гармония — глубокое внутреннее спокойствие и принятие себя', ['Гармония', 'Баланс', 'Спокойствие']),
+            ('Трансформация — выход на новый уровень, перезагрузка жизни', ['Трансформация', 'Мудрость', 'Интуиция', 'Медитация']),
+        ]
+    },
+    {
+        'text': 'Какой энергетический центр вы чувствуете наиболее ослабленным?\n\nЕсли не уверены — выберите область тела, где ощущаете дискомфорт или пустоту.',
+        'options': [
+            ('Муладхара (основание) — нестабильность, страх, отсутствие опоры', ['Корневая']),
+            ('Свадхистана (низ живота) — подавленные эмоции, потеря радости и удовольствия', ['Сакральная']),
+            ('Манипура (солнечное сплетение) — неуверенность, потеря воли и личной силы', ['Солнечное сплетение']),
+            ('Анахата (сердце) — закрытость, обиды, недоверие к людям и миру', ['Сердечная']),
+            ('Вишудха (горло) — трудно выражать мысли, страх быть услышанным', ['Горловая']),
+            ('Аджна (третий глаз) — потеря интуиции, спутанность сознания', ['Третий глаз']),
+            ('Сахасрара (макушка) — потеря связи с высшим, духовная пустота', ['Коронная']),
+        ]
+    },
+]
+
+
+def get_recommendations(selected_answers):
+    all_tags = []
+    for q_idx, a_idx in selected_answers.items():
+        q = QUIZ_QUESTIONS[int(q_idx)]
+        tags = q['options'][a_idx][1]
+        all_tags.extend(tags)
+
+    scored = []
+    for crystal in crystals:
+        score = 0
+        for tag in all_tags:
+            if tag in crystal['problems']:
+                score += 3
+            if tag in crystal['chakras']:
+                score += 2
+            if any(tag.lower() in effect.lower() for effect in crystal['effects']):
+                score += 1
+        if score > 0:
+            scored.append((crystal, score))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return scored[:3]
+
+
+@router.callback_query(F.data == "quiz")
+async def quiz_start(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.clear()
+    await state.set_state(QuizStates.q1)
+    q = QUIZ_QUESTIONS[0]
+    buttons = []
+    for i, (label, _) in enumerate(q['options']):
+        buttons.append([InlineKeyboardButton(text=f"{i+1}. {label}", callback_data=f"quiz_a_{i}")])
+    buttons.append([InlineKeyboardButton(text="← НАЗАД", callback_data="menu")])
+
+    await callback.message.edit_text(
+        f"💎 *МИНИ-ДИАГНОСТИКА ЭНЕРГЕТИЧЕСКОГО СОСТОЯНИЯ*\n\n{q['text']}",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+    )
+
+
+@router.callback_query(F.data.startswith("quiz_a_"), QuizStates())
+async def quiz_answer(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    data = await state.get_data()
+    answers = data.get('answers', {})
+
+    q_num = int(str(await state.get_state()).split('.')[-1][1:])  # q1 -> 1
+    a_idx = int(callback.data.split('_')[-1])
+
+    answers[q_num - 1] = a_idx
+    await state.update_data(answers=answers)
+
+    next_q = q_num
+    if next_q < 5:
+        await state.set_state(getattr(QuizStates, f"q{next_q + 1}"))
+        q = QUIZ_QUESTIONS[next_q]
+        buttons = []
+        for i, (label, _) in enumerate(q['options']):
+            buttons.append([InlineKeyboardButton(text=f"{i+1}. {label}", callback_data=f"quiz_a_{i}")])
+        buttons.append([InlineKeyboardButton(text="← НАЗАД", callback_data=f"quiz_back_{q_num}")])
+
+        await callback.message.edit_text(
+            f"💎 *МИНИ-ДИАГНОСТИКА ЭНЕРГЕТИЧЕСКОГО СОСТОЯНИЯ*\n\n{q['text']}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+        )
+    else:
+        # Results
+        recommendations = get_recommendations(answers)
+        text = "💎 *РЕЗУЛЬТАТ МИНИ-ДИАГНОСТИКИ*\n\n"
+        if recommendations:
+            text += "На основе ваших ответов мы определили минералы с наивысшим энергетическим резонансом:\n\n"
+            for i, (crystal, score) in enumerate(recommendations, 1):
+                text += f"{i}. {crystal['name']} (совпадение {min(int((score / 15) * 100), 99)}%)\n"
+        else:
+            text += "Рекомендация не найдена. Попробуйте пройти ещё раз."
+
+        await callback.message.edit_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="ПРОЙТИ ЕЩЁ РАЗ", callback_data="quiz")],
+                [InlineKeyboardButton(text="← НАЗАД", callback_data="menu")]
+            ])
+        )
+        await state.clear()
+
+
+@router.callback_query(F.data.startswith("quiz_back_"))
+async def quiz_back(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    q_num = int(callback.data.split('_')[-1])
+    await state.set_state(getattr(QuizStates, f"q{q_num}"))
+    q = QUIZ_QUESTIONS[q_num - 1]
+    buttons = []
+    for i, (label, _) in enumerate(q['options']):
+        buttons.append([InlineKeyboardButton(text=f"{i+1}. {label}", callback_data=f"quiz_a_{i}")])
+    buttons.append([InlineKeyboardButton(text="← НАЗАД", callback_data="menu" if q_num == 1 else f"quiz_back_{q_num-1}")])
+
+    await callback.message.edit_text(
+        f"💎 *МИНИ-ДИАГНОСТИКА ЭНЕРГЕТИЧЕСКОГО СОСТОЯНИЯ*\n\n{q['text']}",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+    )
         {
             'text': '⭐ Что вы хотите пожелать этому человеку больше всего?',
             'options': [

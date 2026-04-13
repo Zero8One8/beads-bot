@@ -80,23 +80,34 @@ async def admin_products(callback: CallbackQuery):
 @router.callback_query(F.data == "admin_categories")
 async def admin_categories(callback: CallbackQuery):
     """Список категорий."""
-    if not UserModel.is_admin(callback.from_user.id):
-        await callback.answer("❌ Нет прав")
-        return
-    categories = CategoryModel.get_all()
-    
-    text = f"📋 *КАТЕГОРИИ ТОВАРОВ*\n\nВсего: {len(categories)}\n\n"
-    
-    buttons = []
-    for cat in categories:
-        text += f"{cat['emoji']} {cat['name']} (ID: {cat['id']})\n"
-        buttons.append([InlineKeyboardButton(
-            text=f"✏️ {cat['emoji']} {cat['name']}",
-            callback_data=f"admin_cat_edit_{cat['id']}"
-        )])
-    
-    buttons.append([InlineKeyboardButton(text="➕ СОЗДАТЬ", callback_data="admin_cat_create")])
-    buttons.append([InlineKeyboardButton(text="🔙 НАЗАД", callback_data="admin_products")])
+    try:
+        if not UserModel.is_admin(callback.from_user.id):
+            await callback.answer("❌ Нет прав")
+            return
+        
+        categories = CategoryModel.get_all()
+        
+        text = f"📋 *КАТЕГОРИИ ТОВАРОВ*\n\nВсего: {len(categories)}\n\n"
+        
+        buttons = []
+        for cat in categories[:10]:  # Лимит для избежания перегрузки
+            text += f"{cat['emoji']} {cat['name']} (ID: {cat['id']})\n"
+            buttons.append([InlineKeyboardButton(
+                text=f"✏️ {cat['emoji']} {cat['name']}",
+                callback_data=f"admin_cat_edit_{cat['id']}"
+            )])
+        
+        if len(categories) > 10:
+            text += f"\n... и ещё {len(categories) - 10} категорий"
+        
+        buttons.append([InlineKeyboardButton(text="➕ СОЗДАТЬ", callback_data="admin_cat_create")])
+        buttons.append([InlineKeyboardButton(text="🔙 НАЗАД", callback_data="admin_products")])
+        
+        await callback.message.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons), parse_mode="Markdown")
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"Error in admin_categories: {e}")
+        await callback.answer("❌ Ошибка загрузки категорий", show_alert=True)
     
     await callback.message.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     await callback.answer()
