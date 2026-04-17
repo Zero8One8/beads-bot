@@ -31,12 +31,11 @@ def get_db_path():
 def db_query(sql, params=()):
     """Выполнить запрос к БД с обработкой ошибок."""
     try:
-        conn = sqlite3.connect(str(get_db_path()), timeout=10)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute(sql, params)
-        rows = [dict(r) for r in c.fetchall()]
-        conn.close()
+        with sqlite3.connect(str(get_db_path()), timeout=10) as conn:
+            conn.row_factory = sqlite3.Row
+            c = conn.cursor()
+            c.execute(sql, params)
+            rows = [dict(r) for r in c.fetchall()]
         return rows
     except sqlite3.DatabaseError as e:
         logger.error(f"DB error: {e}")

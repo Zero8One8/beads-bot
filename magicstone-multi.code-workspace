@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "path": "C:/Users/MagicBook/Desktop/zero-repo"
+    },
+    {
+      "path": "C:/Users/MagicBook/Desktop/site-repo"
+    }
+  ],
+  "settings": {
+    "files.autoSave": "afterDelay",
+    "editor.formatOnSave": true,
+    "terminal.integrated.defaultProfile.windows": "PowerShell"
+  }
+}

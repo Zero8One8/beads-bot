@@ -117,16 +117,14 @@ async def check_cart_reminders(bot):
                     WHERE cart.status = 'active'
                       AND cart.added_at < datetime('now', '-2 hours')
                       AND (
-                          SELECT reminded FROM cart_reminders
-                          WHERE user_id = cart.user_id
-                      ) IS NULL
-                      OR (
                           (
                               SELECT reminded FROM cart_reminders
                               WHERE user_id = cart.user_id
+                          ) IS NULL
+                          OR (
+                              SELECT reminded FROM cart_reminders
+                              WHERE user_id = cart.user_id
                           ) = 0
-                          AND cart.status = 'active'
-                          AND cart.added_at < datetime('now', '-2 hours')
                       )
                     GROUP BY cart.user_id
                     LIMIT 50

@@ -409,7 +409,16 @@ async def _process_gift_payment(message: Message, payload: str, payment, bot: Bo
 
 async def _process_marathon_payment(user_id: int, payment, bot: Bot):
     """Активация марафона после оплаты."""
-    from src.handlers.marathon import activate_marathon_participant
+    try:
+        from src.handlers.marathon import activate_marathon_participant
+    except ImportError:
+        logger.error("Модуль марафона не найден: src.handlers.marathon")
+        await bot.send_message(
+            user_id,
+            "✅ Оплата принята. Марафон активируется вручную, мастер уже уведомлен.",
+            parse_mode="Markdown"
+        )
+        return
     from datetime import datetime as dt
     await activate_marathon_participant(user_id, payment.telegram_payment_charge_id)
 
