@@ -981,6 +981,31 @@ class ReferralModel:
             return True
 
 
+class ClubModel:
+    """Совместимость после удаления клубного модуля."""
+
+    @staticmethod
+    def get_user_subscription(user_id: int) -> Optional[Dict]:
+        return None
+
+    @staticmethod
+    def has_access(user_id: int) -> bool:
+        # Клубный функционал удален, доступ всегда выключен.
+        return False
+
+    @staticmethod
+    def start_trial(user_id: int) -> bool:
+        return False
+
+    @staticmethod
+    def activate_paid(user_id: int, payment_id: str, duration_days: int = 30) -> bool:
+        return False
+
+    @staticmethod
+    def expire_subscriptions():
+        return None
+
+
 class ScheduledPostModel:
     """Планировщик постов."""
     
