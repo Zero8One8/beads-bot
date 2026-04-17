@@ -320,6 +320,11 @@ def create_app():
     return app
 
 
+def create_web_app():
+    """Совместимость с main.py, ожидающим create_web_app."""
+    return create_app()
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     app = create_app()

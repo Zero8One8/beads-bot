@@ -212,7 +212,6 @@ def run_all_content_seeds():
     """Запускает все сиды контента."""
     seed_faq()
     seed_music()
-    seed_workouts()
     seed_products()
     sync_knowledge_from_files()
     seed_club_info()
