@@ -45,6 +45,11 @@ class Config:
     POSTS_PATH = CONTENT_PATH / 'posts'
     CLUB_CONTENT_PATH = CONTENT_PATH / 'club'
 
+    # Webhook (если задан — бот работает через webhook, иначе polling)
+    WEBHOOK_URL = os.getenv('WEBHOOK_URL', '').rstrip('/')
+    WEBHOOK_PATH = '/webhook/telegram'
+    WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET', '')
+
     # Интеграции (опциональные)
     AMOCRM_SUBDOMAIN = os.getenv('AMOCRM_SUBDOMAIN', '')
     AMOCRM_ACCESS_TOKEN = os.getenv('AMOCRM_ACCESS_TOKEN', '')

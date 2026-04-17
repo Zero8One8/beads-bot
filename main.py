@@ -304,64 +304,144 @@ async def main():
         logger.warning("ROLE=web: принудительно отключаю polling (ENABLE_POLLING игнорируется).")
         enable_polling = False
 
+    # Webhook-режим — если задан WEBHOOK_URL, используем его вместо polling.
+    # Telegram сам присылает обновления на URL, конфликт инстансов невозможен.
+    webhook_url = Config.WEBHOOK_URL
+    use_webhook = bool(webhook_url) and enable_polling
+
     logger.info(
-        "⚙️ Режим запуска: ROLE=%s, ENABLE_WEB=%s, ENABLE_POLLING=%s",
+        "⚙️ Режим запуска: ROLE=%s, ENABLE_WEB=%s, ENABLE_POLLING=%s, WEBHOOK=%s",
         role or 'auto',
         enable_web,
         enable_polling,
+        webhook_url or 'нет (используется polling)',
     )
 
     await on_startup(enable_web)
     try:
         if not enable_polling:
-            logger.warning("⏸️ Polling отключен (ENABLE_POLLING=0). Инстанс работает без Telegram getUpdates.")
+            logger.warning("⏸️ Polling/webhook отключен. Инстанс работает без Telegram getUpdates.")
             while True:
                 await asyncio.sleep(3600)
 
-        # Если lock занят, этот инстанс работает как веб/пассивный, без getUpdates.
-        if not try_acquire_polling_lock():
-            logger.warning("⏸️ Polling lock уже занят. Этот инстанс не запускает getUpdates.")
-            while True:
-                await asyncio.sleep(3600)
+        if use_webhook:
+            # ── WEBHOOK MODE ──────────────────────────────────────────────
+            # Конфликт двух инстансов невозможен: Telegram шлёт обновления
+            # на URL, а не оба инстанса тянут их сами.
+            from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+            from aiohttp import web as aio_web
 
-        polling_lock_task = asyncio.create_task(polling_lock_heartbeat())
+            full_webhook_url = webhook_url + Config.WEBHOOK_PATH
 
-        loop = asyncio.get_running_loop()
-        stop_event = asyncio.Event()
+            # Выставляем webhook в Telegram
+            await bot.set_webhook(
+                url=full_webhook_url,
+                secret_token=Config.WEBHOOK_SECRET or None,
+                drop_pending_updates=True,
+            )
+            logger.info(f"✅ Webhook установлен: {full_webhook_url}")
 
-        def _on_stop_signal():
-            logger.info("⛔ Получен сигнал завершения — останавливаю polling немедленно.")
-            stop_event.set()
+            # Если веб-сервер уже запущен в on_startup — добавляем к нему handler.
+            # Если нет — поднимаем отдельный.
+            if not enable_web:
+                web_port = int(os.getenv('PORT', 8080))
+                app = aio_web.Application()
+                SimpleRequestHandler(
+                    dispatcher=dp,
+                    bot=bot,
+                    secret_token=Config.WEBHOOK_SECRET or None,
+                ).register(app, path=Config.WEBHOOK_PATH)
+                setup_application(app, dp, bot=bot)
+                runner = aio_web.AppRunner(app)
+                await runner.setup()
+                site = aio_web.TCPSite(runner, '0.0.0.0', web_port)
+                await site.start()
+                logger.info(f"✅ Webhook-сервер запущен на порту {web_port}")
+                # Ждём SIGTERM
+                stop_event = asyncio.Event()
+                loop = asyncio.get_running_loop()
+                for sig in (signal.SIGTERM, signal.SIGINT):
+                    try:
+                        loop.add_signal_handler(sig, stop_event.set)
+                    except (NotImplementedError, OSError):
+                        pass
+                await stop_event.wait()
+                await runner.cleanup()
+            else:
+                # Веб-сервер уже запущен — регистрируем handler на его app
+                # через startup: получаем app из глобального runner
+                from web.app import create_web_app
+                from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+                from aiohttp import web as aio_web
 
-        for sig in (signal.SIGTERM, signal.SIGINT):
-            try:
-                loop.add_signal_handler(sig, _on_stop_signal)
-            except (NotImplementedError, OSError):
-                pass  # Windows не поддерживает add_signal_handler
+                app = create_web_app()
+                SimpleRequestHandler(
+                    dispatcher=dp,
+                    bot=bot,
+                    secret_token=Config.WEBHOOK_SECRET or None,
+                ).register(app, path=Config.WEBHOOK_PATH)
 
-        await bot.delete_webhook(drop_pending_updates=True)
+                web_port = int(os.getenv('PORT', 8080))
+                runner = aio_web.AppRunner(app)
+                await runner.setup()
+                site = aio_web.TCPSite(runner, '0.0.0.0', web_port)
+                await site.start()
+                logger.info(f"✅ Webhook+Web сервер запущен на порту {web_port}")
 
-        polling_task = asyncio.create_task(
-            dp.start_polling(bot, handle_signals=False)
-        )
-        stop_task = asyncio.create_task(stop_event.wait())
+                stop_event = asyncio.Event()
+                loop = asyncio.get_running_loop()
+                for sig in (signal.SIGTERM, signal.SIGINT):
+                    try:
+                        loop.add_signal_handler(sig, stop_event.set)
+                    except (NotImplementedError, OSError):
+                        pass
+                await stop_event.wait()
+                await runner.cleanup()
+        else:
+            # ── POLLING MODE (fallback) ───────────────────────────────────
+            if not try_acquire_polling_lock():
+                logger.warning("⏸️ Polling lock уже занят. Этот инстанс не запускает getUpdates.")
+                while True:
+                    await asyncio.sleep(3600)
 
-        done, pending = await asyncio.wait(
-            [polling_task, stop_task],
-            return_when=asyncio.FIRST_COMPLETED,
-        )
+            polling_lock_task = asyncio.create_task(polling_lock_heartbeat())
 
-        for task in pending:
-            task.cancel()
-            try:
-                await task
-            except (asyncio.CancelledError, Exception):
-                pass
+            loop = asyncio.get_running_loop()
+            stop_event = asyncio.Event()
 
-        if stop_event.is_set():
-            logger.info("⛔ Polling остановлен по сигналу. Завершаю процесс.")
-        elif polling_conflict_detected:
-            logger.warning("⏸️ После конфликта polling остановлен, инстанс завершает работу.")
+            def _on_stop_signal():
+                logger.info("⛔ Получен сигнал завершения — останавливаю polling немедленно.")
+                stop_event.set()
+
+            for sig in (signal.SIGTERM, signal.SIGINT):
+                try:
+                    loop.add_signal_handler(sig, _on_stop_signal)
+                except (NotImplementedError, OSError):
+                    pass
+
+            await bot.delete_webhook(drop_pending_updates=True)
+
+            polling_task = asyncio.create_task(
+                dp.start_polling(bot, handle_signals=False)
+            )
+            stop_task = asyncio.create_task(stop_event.wait())
+
+            done, pending = await asyncio.wait(
+                [polling_task, stop_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            for task in pending:
+                task.cancel()
+                try:
+                    await task
+                except (asyncio.CancelledError, Exception):
+                    pass
+
+            if stop_event.is_set():
+                logger.info("⛔ Polling остановлен по сигналу. Завершаю процесс.")
+            elif polling_conflict_detected:
+                logger.warning("⏸️ После конфликта polling остановлен, инстанс завершает работу.")
     finally:
         await on_shutdown()
 
