@@ -5,6 +5,7 @@
 import asyncio
 import logging
 import os
+import signal
 import socket
 from aiogram import Bot, Dispatcher
 from aiogram.exceptions import TelegramConflictError
@@ -325,13 +326,42 @@ async def main():
 
         polling_lock_task = asyncio.create_task(polling_lock_heartbeat())
 
-        await bot.delete_webhook(drop_pending_updates=True)
-        await dp.start_polling(bot)
+        loop = asyncio.get_running_loop()
+        stop_event = asyncio.Event()
 
-        if polling_conflict_detected:
-            logger.warning("⏸️ После конфликта polling остановлен, инстанс работает пассивно.")
-            while True:
-                await asyncio.sleep(3600)
+        def _on_stop_signal():
+            logger.info("⛔ Получен сигнал завершения — останавливаю polling немедленно.")
+            stop_event.set()
+
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            try:
+                loop.add_signal_handler(sig, _on_stop_signal)
+            except (NotImplementedError, OSError):
+                pass  # Windows не поддерживает add_signal_handler
+
+        await bot.delete_webhook(drop_pending_updates=True)
+
+        polling_task = asyncio.create_task(
+            dp.start_polling(bot, handle_signals=False)
+        )
+        stop_task = asyncio.create_task(stop_event.wait())
+
+        done, pending = await asyncio.wait(
+            [polling_task, stop_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        for task in pending:
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
+
+        if stop_event.is_set():
+            logger.info("⛔ Polling остановлен по сигналу. Завершаю процесс.")
+        elif polling_conflict_detected:
+            logger.warning("⏸️ После конфликта polling остановлен, инстанс завершает работу.")
     finally:
         await on_shutdown()
 
