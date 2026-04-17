@@ -13,7 +13,6 @@ from aiogram.enums import ParseMode
 from src.config import Config
 from src.database.db import db
 from src.database.init import init_db
-from src.database.seed_quiz import run_all_seeds
 from src.database.seed_content import run_all_content_seeds
 from src.utils.text_loader import ContentLoader
 from src.middlewares.rate_limit import RateLimitMiddleware
@@ -22,23 +21,18 @@ from src.middlewares.rate_limit import RateLimitMiddleware
 from src.handlers import user
 from src.handlers import shop
 from src.handlers import diagnostic
-from src.handlers import custom_order
-from src.handlers import music
 from src.handlers import workouts
 from src.handlers import services
 from src.handlers import gifts
 from src.handlers import wishlist
 from src.handlers import faq
-from src.handlers import quiz
 from src.handlers import stories
-from src.handlers import club
 from src.handlers import payment
 from src.handlers import admin
 from src.handlers import admin_diagnostic
 from src.handlers import admin_products
 from src.handlers import admin_promos
 from src.handlers import admin_services
-from src.handlers import admin_club
 from src.handlers import admin_broadcast
 from src.handlers import admin_stats
 from src.handlers import admin_orders
@@ -49,14 +43,9 @@ from src.handlers.admin_content import router as admin_content_router
 from src.handlers.knowledge import router as knowledge_router
 from src.handlers import daily_stone
 from src.handlers import selector
-from src.handlers import ai_consult
-from src.handlers import streak
-from src.handlers import wishmap
 from src.handlers import compatibility
 from src.handlers import profile
 from src.handlers import search
-from src.handlers import marathon
-from src.handlers import astro_advice
 from src.handlers.admin_stones import router as admin_stones_router
 
 # Настройка логирования
@@ -83,23 +72,18 @@ dp.callback_query.middleware(RateLimitMiddleware())
 dp.include_router(user.router)
 dp.include_router(shop.router)
 dp.include_router(diagnostic.router)
-dp.include_router(custom_order.router)
-dp.include_router(music.router)
 dp.include_router(workouts.router)
 dp.include_router(services.router)
 dp.include_router(gifts.router)
 dp.include_router(wishlist.router)
 dp.include_router(faq.router)
-dp.include_router(quiz.router)
 dp.include_router(stories.router)
-dp.include_router(club.router)
 dp.include_router(payment.router)
 dp.include_router(admin.router)
 dp.include_router(admin_diagnostic.router)
 dp.include_router(admin_products.router)
 dp.include_router(admin_promos.router)
 dp.include_router(admin_services.router)
-dp.include_router(admin_club.router)
 dp.include_router(admin_broadcast.router)
 dp.include_router(admin_stats.router)
 dp.include_router(admin_orders.router)
@@ -109,14 +93,9 @@ dp.include_router(admin_settings.router)
 dp.include_router(knowledge_router)
 dp.include_router(daily_stone.router)
 dp.include_router(selector.router)
-dp.include_router(ai_consult.router)
-dp.include_router(streak.router)
-dp.include_router(wishmap.router)
 dp.include_router(compatibility.router)
 dp.include_router(profile.router)
 dp.include_router(search.router)
-dp.include_router(marathon.router)
-dp.include_router(astro_advice.router)
 dp.include_router(admin_content_router)
 dp.include_router(admin_stones_router)
 
@@ -126,22 +105,18 @@ async def background_tasks():
     from src.services.background import (
         check_pending_orders,
         check_birthdays,
-        check_expired_subscriptions,
         send_daily_stone,
         check_cart_reminders,
         check_reactivation,
-        send_monday_astro,
         send_review_requests,
         send_birthday_promos
     )
     await asyncio.gather(
         check_pending_orders(),
         check_birthdays(),
-        check_expired_subscriptions(),
         send_daily_stone(bot),
         check_cart_reminders(bot),
         check_reactivation(bot),
-        send_monday_astro(bot),
         send_review_requests(bot),
         send_birthday_promos(bot),
         return_exceptions=True
@@ -171,7 +146,6 @@ async def on_startup():
     logger.info("✅ База данных инициализирована")
     
     # Заполняем данные по умолчанию
-    run_all_seeds()
     run_all_content_seeds()
     logger.info("✅ Начальные данные загружены")
     

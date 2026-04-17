@@ -74,3 +74,9 @@ htmlcov/
 # Railway
 .railway/
 railway.json
+
+# Deploy scripts
+deploy-git-only.ps1
+deploy-site.ps1
+deploy-bot.ps1
+update-repo.ps1

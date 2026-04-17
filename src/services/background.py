@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 
 from src.database.db import db
-from src.database.models import OrderModel, ClubModel
+from src.database.models import OrderModel
 from src.services.notifications import AdminNotifier
 from src.config import Config
 
@@ -75,16 +75,6 @@ async def check_birthdays():
         except Exception as e:
             logger.error(f"Ошибка в check_birthdays: {e}")
 
-
-async def check_expired_subscriptions():
-    """Проверка истекших подписок клуба."""
-    while True:
-        try:
-            await asyncio.sleep(3600)
-            ClubModel.expire_subscriptions()
-            logger.info("Проверка истекших подписок выполнена")
-        except Exception as e:
-            logger.error(f"Ошибка в check_expired_subscriptions: {e}")
 
 async def send_daily_stone(bot):
     """Рассылка камня дня в 9:00 каждый день."""
@@ -222,34 +212,6 @@ async def check_reactivation(bot):
         except Exception as e:
             logger.error(f"Ошибка check_reactivation: {e}")
             await asyncio.sleep(6 * 3600)
-
-
-async def send_monday_astro(bot):
-    """Рассылка астро-совета каждый понедельник в 10:00."""
-    while True:
-        try:
-            from datetime import date, timedelta
-            now = datetime.now()
-            # Следующий понедельник в 10:00
-            days_to_monday = (7 - now.weekday()) % 7 or 7
-            next_monday = now.replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=days_to_monday)
-            wait_seconds = (next_monday - now).total_seconds()
-            await asyncio.sleep(wait_seconds)
-
-            # Ищем несысланный совет
-            with db.cursor() as c:
-                c.execute("SELECT id FROM astro_advice WHERE sent = 0 ORDER BY id DESC LIMIT 1")
-                row = c.fetchone()
-
-            if row:
-                from src.handlers.astro_advice import send_astro_broadcast
-                await send_astro_broadcast(bot)
-                logger.info("✅ Астро-совет понедельника разослан")
-
-            await asyncio.sleep(7 * 24 * 3600)  # Спим неделю
-        except Exception as e:
-            logger.error(f"Ошибка monday astro: {e}")
-            await asyncio.sleep(3600)
 
 
 async def send_review_requests(bot):

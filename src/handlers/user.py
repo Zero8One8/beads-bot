@@ -24,8 +24,9 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
     username = message.from_user.username or ""
     first_name = message.from_user.first_name or ""
     
-    # Парсим реферальный код
+    # Парсим реферальный код и deep links с сайта
     ref_id = None
+    deep_link = None
     if message.text and len(message.text.split()) > 1:
         try:
             ref_arg = message.text.split()[1]
@@ -33,6 +34,8 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
                 ref_id = int(ref_arg.replace('ref', ''))
                 if ref_id == user_id:
                     ref_id = None
+            elif ref_arg in ('diagnostika', 'services', 'shop', 'selector', 'knowledge', 'faq'):
+                deep_link = ref_arg
         except Exception:
             ref_id = None
     
@@ -64,6 +67,26 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
     welcome_text = settings.get('welcome_text', '🌟 ДОБРО ПОЖАЛОВАТЬ!')
     
     await message.answer(welcome_text, reply_markup=get_main_keyboard())
+
+    # Обработка deep links с сайта magic-stone.org
+    if deep_link == 'diagnostika':
+        from src.handlers.diagnostic import start_diagnostic
+        await start_diagnostic(message, state)
+    elif deep_link == 'services':
+        from src.handlers.services import show_services
+        await show_services(message)
+    elif deep_link == 'shop':
+        from src.handlers.shop import show_catalog
+        await show_catalog(message)
+    elif deep_link == 'selector':
+        from src.handlers.selector import start_selector
+        await start_selector(message, state)
+    elif deep_link == 'knowledge':
+        from src.handlers.knowledge import show_knowledge_menu
+        await show_knowledge_menu(message)
+    elif deep_link == 'faq':
+        from src.handlers.faq import show_faq
+        await show_faq(message)
 
 
 @router.message(Command("admin"))
