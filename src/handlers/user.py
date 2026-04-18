@@ -17,6 +17,17 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
+async def _send_deep_link_hint(message: Message, title: str, callback_data: str):
+    """Безопасный deep-link переход для callback-based разделов."""
+    await message.answer(
+        f"{title}\n\nНажмите кнопку ниже, чтобы открыть раздел.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Открыть", callback_data=callback_data)],
+            [InlineKeyboardButton(text="Главное меню", callback_data="menu")],
+        ]),
+    )
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, bot: Bot):
     """Обработчик команды /start."""
@@ -70,23 +81,17 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
 
     # Обработка deep links с сайта magic-stone.org
     if deep_link == 'diagnostika':
-        from src.handlers.diagnostic import start_diagnostic
-        await start_diagnostic(message, state)
+        await _send_deep_link_hint(message, "🩺 Переход в диагностику", "diagnostic")
     elif deep_link == 'services':
-        from src.handlers.services import show_services
-        await show_services(message)
+        await _send_deep_link_hint(message, "✨ Переход в услуги", "services")
     elif deep_link == 'shop':
-        from src.handlers.shop import show_catalog
-        await show_catalog(message)
+        await _send_deep_link_hint(message, "💎 Переход в витрину", "showcase")
     elif deep_link == 'selector':
-        from src.handlers.selector import start_selector
-        await start_selector(message, state)
+        await _send_deep_link_hint(message, "🦊 Переход в подбор камня", "totem")
     elif deep_link == 'knowledge':
-        from src.handlers.knowledge import show_knowledge_menu
-        await show_knowledge_menu(message)
+        await _send_deep_link_hint(message, "📚 Переход в базу знаний", "knowledge")
     elif deep_link == 'faq':
-        from src.handlers.faq import show_faq
-        await show_faq(message)
+        await _send_deep_link_hint(message, "❓ Переход в FAQ", "faq")
 
 
 @router.message(Command("admin"))

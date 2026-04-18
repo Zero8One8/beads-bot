@@ -108,9 +108,6 @@ async def admin_categories(callback: CallbackQuery):
     except Exception as e:
         logger.error(f"Error in admin_categories: {e}")
         await callback.answer("❌ Ошибка загрузки категорий", show_alert=True)
-    
-    await callback.message.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
-    await callback.answer()
 
 
 @router.callback_query(F.data == "admin_cat_create")

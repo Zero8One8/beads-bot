@@ -26,6 +26,7 @@ router = Router()
 
 
 class OrderStates(StatesGroup):
+    waiting_payment = State()
     waiting_promo = State()
 
 
@@ -196,7 +197,7 @@ async def checkout_start(callback: CallbackQuery, state: FSMContext):
         promo_code=None, discount=discount,
         final_total=final_total, discount_total=discount
     )
-    await state.set_state("waiting_payment")
+    await state.set_state(OrderStates.waiting_payment)
 
     text = (
         f"💳 *ОФОРМЛЕНИЕ ЗАКАЗА*\n\n"
@@ -260,11 +261,6 @@ async def show_payment_methods(message: Message, state: FSMContext):
     total, _ = CartModel.get_total(user_id)
     final_total = max(0, total - discount)
 
-    if ClubModel.has_access(user_id):
-        club_discount = int(final_total * 0.2)
-        final_total -= club_discount
-        discount += club_discount
-
     bonus_balance = UserModel.get_bonus_balance(user_id)
 
     await message.answer(
@@ -278,4 +274,4 @@ async def show_payment_methods(message: Message, state: FSMContext):
     )
 
     await state.update_data(final_total=final_total, discount_total=discount)
-    await state.set_state("waiting_payment")
+    await state.set_state(OrderStates.waiting_payment)

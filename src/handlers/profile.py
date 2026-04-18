@@ -71,19 +71,50 @@ async def profile_show(callback: CallbackQuery):
 
     buttons = [
         [InlineKeyboardButton(text="📦 МОИ ЗАКАЗЫ", callback_data="my_orders")],
-        [InlineKeyboardButton(text="🔥 МОЙ СТРИК", callback_data="streak")],
         [InlineKeyboardButton(text="🤝 РЕФЕРАЛЫ", callback_data="referral")],
     ]
-
-    if has_club:
-        buttons.append([InlineKeyboardButton(text="🔮 ПОРТАЛ СИЛЫ", callback_data="club_content")])
-    else:
-        buttons.append([InlineKeyboardButton(text="🔮 ВСТУПИТЬ В КЛУБ", callback_data="club")])
 
     buttons.append([InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")])
 
     await callback.message.edit_text(
         text, parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "my_orders")
+async def my_orders(callback: CallbackQuery):
+    """Показывает последние заказы пользователя."""
+    user_id = callback.from_user.id
+    orders = OrderModel.get_user_orders(user_id, limit=10)
+
+    if not orders:
+        await callback.message.edit_text(
+            "📦 *МОИ ЗАКАЗЫ*\n\nУ вас пока нет заказов.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="💎 ВИТРИНА", callback_data="showcase")],
+                [InlineKeyboardButton(text="← ПРОФИЛЬ", callback_data="profile")],
+            ]),
+        )
+        await callback.answer()
+        return
+
+    lines = ["📦 *МОИ ЗАКАЗЫ*\n"]
+    for order in orders:
+        oid = order.get("id")
+        status = order.get("status", "unknown")
+        total = int(order.get("total_price") or 0)
+        created = str(order.get("created_at") or "").split(" ")[0]
+        lines.append(f"• #{oid} | {status} | {total} ₽ | {created}")
+
+    await callback.message.edit_text(
+        "\n".join(lines),
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="← ПРОФИЛЬ", callback_data="profile")],
+            [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
+        ]),
     )
     await callback.answer()

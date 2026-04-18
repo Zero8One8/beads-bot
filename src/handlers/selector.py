@@ -54,7 +54,7 @@ SELECTOR_MAP = {
 }
 
 
-@router.callback_query(F.data == "selector")
+@router.callback_query((F.data == "selector") | (F.data == "totem"))
 async def selector_start(callback: CallbackQuery):
     """Быстрый подборщик браслета."""
     await callback.answer()
