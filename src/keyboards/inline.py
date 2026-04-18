@@ -14,30 +14,20 @@ def get_main_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="💎 ВИТРИНА", callback_data="showcase"),
          InlineKeyboardButton(text="🛒 КОРЗИНА", callback_data="cart")],
         # --- Подбор ---
-        [InlineKeyboardButton(text="🔮 ПОДОБРАТЬ МОЙ КАМЕНЬ", callback_data="quiz")],
         [InlineKeyboardButton(text="🦊 ТОТЕМНЫЙ КАМЕНЬ", callback_data="totem"),
-         InlineKeyboardButton(text="🗺 КАРТА ЖЕЛАНИЯ", callback_data="wishmap")],
-        [InlineKeyboardButton(text="🔮 СОВМЕСТИМОСТЬ КАМНЕЙ", callback_data="compatibility"),
-         InlineKeyboardButton(text="🔍 ПОИСК КАМНЯ", callback_data="search_stones")],
+         InlineKeyboardButton(text="🔮 СОВМЕСТИМОСТЬ КАМНЕЙ", callback_data="compatibility")],
+        [InlineKeyboardButton(text="🔍 ПОИСК КАМНЯ", callback_data="search_stones")],
         # --- Знания ---
         [InlineKeyboardButton(text="📚 БАЗА ЗНАНИЙ", callback_data="knowledge"),
          InlineKeyboardButton(text="🌅 КАМЕНЬ ДНЯ", callback_data="daily_stone")],
         # --- Услуги ---
         [InlineKeyboardButton(text="🩺 ДИАГНОСТИКА", callback_data="diagnostic"),
          InlineKeyboardButton(text="✨ УСЛУГИ", callback_data="services")],
-        [InlineKeyboardButton(text="💍 КАСТОМНЫЙ ЗАКАЗ", callback_data="custom_order")],
-        # --- Практики ---
-        [InlineKeyboardButton(text="🔥 МОЙ СТРИК", callback_data="streak"),
-         InlineKeyboardButton(text="🤖 СОВЕТ МАСТЕРА", callback_data="ai_consult")],
-        [InlineKeyboardButton(text="🏃 МАРАФОН 21 ДЕНЬ", callback_data="marathon"),
-         InlineKeyboardButton(text="🌟 АСТРО-СОВЕТ", callback_data="astro_advice")],
         # --- Профиль ---
         [InlineKeyboardButton(text="👤 МОЙ ПРОФИЛЬ", callback_data="profile"),
          InlineKeyboardButton(text="🤝 РЕФЕРАЛЫ", callback_data="referral")],
         # --- Прочее ---
-        [InlineKeyboardButton(text="🔮 ПОРТАЛ СИЛЫ", callback_data="club"),
-         InlineKeyboardButton(text="🎁 СЕРТИФИКАТЫ", callback_data="gifts")],
-        [InlineKeyboardButton(text="🎵 МУЗЫКА", callback_data="music"),
+        [InlineKeyboardButton(text="🎁 СЕРТИФИКАТЫ", callback_data="gifts"),
          InlineKeyboardButton(text="🧘 ПРАКТИКИ", callback_data="workouts")],
         [InlineKeyboardButton(text="❓ FAQ", callback_data="faq"),
          InlineKeyboardButton(text="📞 СВЯЗЬ С МАСТЕРОМ", callback_data="contact_master")],
