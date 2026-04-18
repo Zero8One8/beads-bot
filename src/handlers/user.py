@@ -110,6 +110,7 @@ async def cmd_admin(message: Message):
 
 
 @router.message(Command("links"))
+@router.message(Command("link"))
 async def cmd_links(message: Message):
     """Показывает список deep links для быстрого доступа к разделам."""
     bot_username = (await message.bot.get_me()).username
@@ -127,6 +128,33 @@ async def cmd_links(message: Message):
     )
 
     await message.answer(text, parse_mode="Markdown")
+
+
+@router.callback_query(F.data.in_({
+    "quiz", "wishmap", "custom_order", "streak", "ai_consult", "marathon",
+    "astro_advice", "club", "music", "club_content", "admin_club", "admin_site"
+}))
+async def deprecated_callbacks(callback: CallbackQuery):
+    """Совместимость со старыми кнопками из старых сообщений в чате."""
+    data = callback.data or ""
+
+    if data.startswith("admin_"):
+        if not UserModel.is_admin(callback.from_user.id):
+            await callback.answer("❌ Нет прав администратора", show_alert=True)
+            return
+        from src.keyboards.admin import get_admin_main_keyboard
+        await callback.message.edit_text(
+            "⚙️ Раздел обновлен. Используйте актуальное меню админ-панели.",
+            reply_markup=get_admin_main_keyboard()
+        )
+        await callback.answer("Раздел обновлен")
+        return
+
+    await callback.message.edit_text(
+        "ℹ️ Этот раздел был обновлен или удален.\n\nОткрыл актуальное главное меню.",
+        reply_markup=get_main_keyboard()
+    )
+    await callback.answer("Меню обновлено")
 
 
 @router.callback_query(F.data == "menu")
