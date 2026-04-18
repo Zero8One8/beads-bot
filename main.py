@@ -338,6 +338,12 @@ async def main():
                 url=full_webhook_url,
                 secret_token=Config.WEBHOOK_SECRET or None,
                 drop_pending_updates=True,
+                allowed_updates=[
+                    "message",
+                    "callback_query",
+                    "pre_checkout_query",
+                    "successful_payment",
+                ],
             )
             logger.info(f"✅ Webhook установлен: {full_webhook_url}")
 
