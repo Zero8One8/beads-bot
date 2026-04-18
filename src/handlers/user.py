@@ -45,7 +45,7 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
                 ref_id = int(ref_arg.replace('ref', ''))
                 if ref_id == user_id:
                     ref_id = None
-            elif ref_arg in ('diagnostika', 'services', 'shop', 'selector', 'knowledge', 'faq'):
+            elif ref_arg in ('diagnostika', 'diagnostic', 'services', 'shop', 'selector', 'knowledge', 'faq'):
                 deep_link = ref_arg
         except Exception:
             ref_id = None
@@ -80,7 +80,7 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
     await message.answer(welcome_text, reply_markup=get_main_keyboard())
 
     # Обработка deep links с сайта magic-stone.org
-    if deep_link == 'diagnostika':
+    if deep_link in ('diagnostika', 'diagnostic'):
         await _send_deep_link_hint(message, "🩺 Переход в диагностику", "diagnostic")
     elif deep_link == 'services':
         await _send_deep_link_hint(message, "✨ Переход в услуги", "services")
@@ -107,6 +107,26 @@ async def cmd_admin(message: Message):
         parse_mode="Markdown",
         reply_markup=get_admin_main_keyboard()
     )
+
+
+@router.message(Command("links"))
+async def cmd_links(message: Message):
+    """Показывает список deep links для быстрого доступа к разделам."""
+    bot_username = (await message.bot.get_me()).username
+    base = f"https://t.me/{bot_username}?start="
+
+    text = (
+        "🔗 *DEEP LINKS*\n\n"
+        f"🩺 Диагностика: {base}diagnostika\n"
+        f"✨ Услуги: {base}services\n"
+        f"💎 Витрина: {base}shop\n"
+        f"🦊 Подбор камня: {base}selector\n"
+        f"📚 База знаний: {base}knowledge\n"
+        f"❓ FAQ: {base}faq\n\n"
+        "🤝 Реферальная ссылка формируется автоматически в разделе РЕФЕРАЛЫ."
+    )
+
+    await message.answer(text, parse_mode="Markdown")
 
 
 @router.callback_query(F.data == "menu")
