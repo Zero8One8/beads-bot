@@ -114,6 +114,17 @@ async def _send_deep_link_content(message: Message, deep_link: str):
                 [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
             ])
         )
+        return
+
+    if deep_link == "daily_stone":
+        await message.answer(
+            "🌅 *КАМЕНЬ ДНЯ*\n\nОткройте подборку дня кнопкой ниже.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🌅 Показать камень дня", callback_data="daily_stone")],
+                [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
+            ])
+        )
 
 
 @router.message(CommandStart())
@@ -133,7 +144,7 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
                 ref_id = int(ref_arg.replace('ref', ''))
                 if ref_id == user_id:
                     ref_id = None
-            elif ref_arg in ('diagnostika', 'diagnostic', 'services', 'shop', 'selector', 'knowledge', 'faq'):
+            elif ref_arg in ('diagnostika', 'diagnostic', 'services', 'shop', 'selector', 'knowledge', 'faq', 'daily_stone'):
                 deep_link = ref_arg
         except Exception:
             ref_id = None
@@ -209,7 +220,7 @@ async def cmd_links(message: Message):
 
 @router.callback_query(F.data.in_({
     "quiz", "wishmap", "custom_order", "streak", "ai_consult", "marathon",
-    "astro_advice", "club", "music", "club_content", "admin_club", "admin_site"
+    "astro_advice", "club", "music", "club_content", "admin_club"
 }))
 async def deprecated_callbacks(callback: CallbackQuery):
     """Совместимость со старыми кнопками из старых сообщений в чате."""

@@ -56,6 +56,8 @@ class Config:
     CHANNEL_ID = os.getenv('CHANNEL_ID', '')
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
     MASTER_USERNAME = os.getenv('MASTER_USERNAME', 'SvetozarAdidev')
+    SUPABASE_URL = os.getenv('SUPABASE_URL', '')
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
     
     try:
         AI_DAILY_LIMIT = int(os.getenv('AI_DAILY_LIMIT', '3'))

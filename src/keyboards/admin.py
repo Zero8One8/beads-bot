@@ -16,5 +16,6 @@ def get_admin_main_keyboard() -> InlineKeyboardMarkup:
          InlineKeyboardButton(text="⚙️ НАСТРОЙКИ", callback_data="admin_settings")],
         [InlineKeyboardButton(text="📅 ПЛАНИРОВЩИК", callback_data="admin_scheduler"),
          InlineKeyboardButton(text="🩺 ДИАГНОСТИКА", callback_data="admin_diagnostics")],
+        [InlineKeyboardButton(text="🌐 САЙТ", callback_data="admin_site")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)

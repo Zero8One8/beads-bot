@@ -43,6 +43,7 @@ from src.handlers import admin_orders
 from src.handlers import admin_export
 from src.handlers import admin_scheduler
 from src.handlers import admin_settings
+from src.handlers import admin_site
 from src.handlers.admin_content import router as admin_content_router
 from src.handlers.knowledge import router as knowledge_router
 from src.handlers import daily_stone
@@ -178,6 +179,7 @@ dp.include_router(admin_orders.router)
 dp.include_router(admin_export.router)
 dp.include_router(admin_scheduler.router)
 dp.include_router(admin_settings.router)
+dp.include_router(admin_site.router)
 dp.include_router(knowledge_router)
 dp.include_router(daily_stone.router)
 dp.include_router(selector.router)
