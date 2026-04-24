@@ -84,7 +84,16 @@ async def admin_site_section(callback: CallbackQuery):
         row = await SiteContentClient.get_content(content_key)
     except Exception as exc:
         logger.error("site_content read error for %s: %s", content_key, exc)
-        await callback.answer("❌ Не удалось загрузить секцию", show_alert=True)
+        details = str(exc)[:180] if str(exc) else exc.__class__.__name__
+        await callback.message.edit_text(
+            f"❌ Не удалось загрузить секцию `{content_key}`.\n\nПричина: {details}",
+            parse_mode=None,
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔁 Повторить", callback_data=f"admin_site_section_{content_key}")],
+                [InlineKeyboardButton(text="🔙 К разделам сайта", callback_data="admin_site")],
+            ])
+        )
+        await callback.answer()
         return
 
     current_content = row["content"] if row else meta["template"]
