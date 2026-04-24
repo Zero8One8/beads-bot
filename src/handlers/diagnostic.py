@@ -12,7 +12,6 @@ from datetime import datetime
 from src.database.db import db
 from src.database.models import UserModel, DiagnosticModel
 from src.keyboards.diagnostic import get_diagnostic_keyboard, get_diagnostic_admin_keyboard
-from src.services.stars_payment import StarsPayment
 from src.config import Config
 
 logger = logging.getLogger(__name__)
@@ -32,34 +31,33 @@ async def diagnostic_start(callback: CallbackQuery, state: FSMContext):
         "🔮 *ЭНЕРГЕТИЧЕСКАЯ ДИАГНОСТИКА*\n\n"
         "Мастер анализирует ваше состояние по двум фото и даёт "
         "персональные рекомендации по камням и практикам.\n\n"
-        "📸 *Два фото:*\n"
-        "1. Лицом в полный рост, глаза смотрят в объектив (строго без очков)\n"
+        "📸 *Что нужно прислать:*\n"
+        "1. Лицом в полный рост, глаза смотрят в объектив (без очков)\n"
         "2. Спиной в полный рост\n"
-        "Оба на нейтральном светлом фоне.\n\n"
+        "Оба фото — на нейтральном светлом фоне.\n\n"
         "🔒 Фото нужны только для диагностики и после удаляются. "
         "Передача третьим лицам исключена.\n\n"
-        "💰 *Стоимость:* 3000⭐",
+        "⏱ Ответ мастера — в течение 24 часов.",
         parse_mode="Markdown",
         reply_markup=get_diagnostic_keyboard()
     )
     await callback.answer()
 
 
-@router.callback_query(F.data == "diagnostic_pay")
-async def diagnostic_pay(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    """Оплата диагностики через Stars."""
-    await StarsPayment.create_invoice(
-        bot=bot,
-        user_id=callback.from_user.id,
-        title="Энергетическая диагностика",
-        description="Анализ состояния через камни и фото",
-        payload=f"diagnostic_{callback.from_user.id}",
-        amount_rub=3000
+@router.callback_query(F.data == "diagnostic_begin")
+async def diagnostic_begin(callback: CallbackQuery, state: FSMContext):
+    """Начало диагностики — запрашиваем первое фото."""
+    await state.set_state(DiagnosticStates.waiting_photo1)
+    await callback.message.edit_text(
+        "📸 *ФОТО 1 из 2*\n\n"
+        "Пришлите фото *лицом в полный рост*.\n"
+        "Взгляд в объектив, без очков, светлый нейтральный фон.",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="← ОТМЕНА", callback_data="diagnostic")]
+        ])
     )
-    await callback.answer("💳 Счёт создан", show_alert=False)
-
-
-# Оплата обрабатывается в payment.py
+    await callback.answer()
 
 
 @router.message(DiagnosticStates.waiting_photo1, F.photo)

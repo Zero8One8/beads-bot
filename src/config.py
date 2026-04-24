@@ -55,6 +55,7 @@ class Config:
     AMOCRM_ACCESS_TOKEN = os.getenv('AMOCRM_ACCESS_TOKEN', '')
     CHANNEL_ID = os.getenv('CHANNEL_ID', '')
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+    MASTER_USERNAME = os.getenv('MASTER_USERNAME', 'SvetozarAdidev')
     
     try:
         AI_DAILY_LIMIT = int(os.getenv('AI_DAILY_LIMIT', '3'))

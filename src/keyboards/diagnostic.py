@@ -6,7 +6,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def get_diagnostic_keyboard() -> InlineKeyboardMarkup:
     """Клавиатура для диагностики."""
     buttons = [
-        [InlineKeyboardButton(text="💳 Оплатить 3000⭐", callback_data="diagnostic_pay")],
+        [InlineKeyboardButton(text="� НАЧАТЬ ДИАГНОСТИКУ", callback_data="diagnostic_begin")],
         [InlineKeyboardButton(text="← НАЗАД", callback_data="menu")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)

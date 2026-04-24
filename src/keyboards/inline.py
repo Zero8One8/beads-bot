@@ -24,13 +24,12 @@ def get_main_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🩺 ДИАГНОСТИКА", callback_data="diagnostic"),
          InlineKeyboardButton(text="✨ УСЛУГИ", callback_data="services")],
         # --- Профиль ---
-        [InlineKeyboardButton(text="👤 МОЙ ПРОФИЛЬ", callback_data="profile"),
-         InlineKeyboardButton(text="🤝 РЕФЕРАЛЫ", callback_data="referral")],
+        [InlineKeyboardButton(text="👤 МОЙ ПРОФИЛЬ", callback_data="profile")],
         # --- Прочее ---
         [InlineKeyboardButton(text="🎁 СЕРТИФИКАТЫ", callback_data="gifts"),
-         InlineKeyboardButton(text="🧘 ПРАКТИКИ", callback_data="workouts")],
-        [InlineKeyboardButton(text="❓ FAQ", callback_data="faq"),
-         InlineKeyboardButton(text="📞 СВЯЗЬ С МАСТЕРОМ", callback_data="contact_master")],
+         InlineKeyboardButton(text="❓ FAQ", callback_data="faq")],
+        [InlineKeyboardButton(text="📞 СВЯЗЬ С МАСТЕРОМ", callback_data="contact_master")],
+        [InlineKeyboardButton(text="🌐 САЙТ magic-stone.org", url="https://magic-stone.org")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

@@ -18,6 +18,7 @@ from src.utils.helpers import format_price
 from src.services.notifications import AdminNotifier
 from src.services.stars_payment import StarsPayment
 from src.config import Config
+from src.config import Config
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -38,9 +39,14 @@ async def services_list(callback: CallbackQuery):
     
     if not services:
         await callback.message.edit_text(
-            "✨ *УСЛУГИ*\n\n"
-            "Раздел находится в наполнении. Скоро здесь появятся услуги мастера.",
+            "✨ *УСЛУГИ МАСТЕРА*\n\n"
+            "Расписание сейчас обновляется.\n\n"
+            "Вы можете написать мастеру напрямую, чтобы договориться об удобном времени:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="✍️ Написать мастеру",
+                    url=f"https://t.me/{Config.MASTER_USERNAME}"
+                )],
                 [InlineKeyboardButton(text="← НАЗАД", callback_data="menu")]
             ])
         )
