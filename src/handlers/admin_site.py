@@ -44,6 +44,7 @@ async def admin_site_menu(callback: CallbackQuery):
             "🌐 УПРАВЛЕНИЕ САЙТОМ\n\n"
             "Не настроены переменные SUPABASE_URL и/или SUPABASE_SERVICE_ROLE_KEY.\n"
             "Без них бот не сможет редактировать site_content.",
+            parse_mode=None,
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="🔙 В админку", callback_data="admin_menu")]
             ])
@@ -61,6 +62,7 @@ async def admin_site_menu(callback: CallbackQuery):
         "🌐 УПРАВЛЕНИЕ САЙТОМ\n\n"
         "Здесь можно менять контент сайта, который читает фронтенд из site_content.\n"
         "Формат редактирования: JSON по секциям.",
+        parse_mode=None,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
     )
     await callback.answer()
@@ -99,6 +101,7 @@ async def admin_site_section(callback: CallbackQuery):
 
     await callback.message.edit_text(
         text,
+        parse_mode=None,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✏️ Редактировать JSON", callback_data=f"admin_site_edit_{content_key}")],
             [InlineKeyboardButton(text="📋 Показать шаблон", callback_data=f"admin_site_template_{content_key}")],
@@ -122,6 +125,7 @@ async def admin_site_template(callback: CallbackQuery):
 
     await callback.message.edit_text(
         f"📋 ШАБЛОН: {meta['label']}\n\n{_truncate_json(meta['template'])}",
+        parse_mode=None,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✏️ Редактировать JSON", callback_data=f"admin_site_edit_{content_key}")],
             [InlineKeyboardButton(text="🔙 К секции", callback_data=f"admin_site_section_{content_key}")],
@@ -149,6 +153,7 @@ async def admin_site_edit(callback: CallbackQuery, state: FSMContext):
         f"✏️ РЕДАКТИРОВАНИЕ: {meta['label']}\n\n"
         f"Отправьте одним сообщением валидный JSON для секции `{content_key}`.\n\n"
         f"Подсказка: если записи ещё нет, используйте шаблон как основу.",
+        parse_mode=None,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📋 Показать шаблон", callback_data=f"admin_site_template_{content_key}")],
             [InlineKeyboardButton(text="🔙 К секции", callback_data=f"admin_site_section_{content_key}")],
@@ -176,6 +181,7 @@ async def admin_site_save(message: Message, state: FSMContext):
         await message.answer(
             f"❌ JSON невалидный: {exc.msg} (строка {exc.lineno}, колонка {exc.colno})\n\n"
             f"Исправьте JSON и отправьте ещё раз.",
+            parse_mode=None,
             reply_markup=_back_to_site_kb()
         )
         return
@@ -185,12 +191,13 @@ async def admin_site_save(message: Message, state: FSMContext):
         await SiteContentClient.upsert_content(content_key, content, updated_by)
     except Exception as exc:
         logger.error("site_content upsert error for %s: %s", content_key, exc)
-        await message.answer("❌ Не удалось сохранить секцию сайта", reply_markup=_back_to_site_kb())
+        await message.answer("❌ Не удалось сохранить секцию сайта", parse_mode=None, reply_markup=_back_to_site_kb())
         return
 
     await state.clear()
     await message.answer(
         f"✅ Секция `{content_key}` сохранена. Сайт начнёт брать новые данные из site_content.",
+        parse_mode=None,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🌐 К разделам сайта", callback_data="admin_site")]
         ])
