@@ -17,6 +17,105 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
+def _get_selector_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💰 Деньги и успех", callback_data="sel_money"),
+         InlineKeyboardButton(text="💞 Любовь", callback_data="sel_love")],
+        [InlineKeyboardButton(text="🛡 Защита", callback_data="sel_protect"),
+         InlineKeyboardButton(text="⚡ Энергия", callback_data="sel_energy")],
+        [InlineKeyboardButton(text="🌿 Спокойствие", callback_data="sel_calm"),
+         InlineKeyboardButton(text="✨ Духовный рост", callback_data="sel_spirit")],
+        [InlineKeyboardButton(text="🌱 Здоровье", callback_data="sel_health"),
+         InlineKeyboardButton(text="🧠 Ясность ума", callback_data="sel_clarity")],
+        [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
+    ])
+
+
+def _get_master_contact_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✍️ Написать мастеру", url=f"https://t.me/{Config.MASTER_USERNAME}")],
+        [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
+    ])
+
+
+async def _send_deep_link_content(message: Message, deep_link: str):
+    if deep_link in ("diagnostika", "diagnostic"):
+        from src.keyboards.diagnostic import get_diagnostic_keyboard
+        await message.answer(
+            "🔮 *ЭНЕРГЕТИЧЕСКАЯ ДИАГНОСТИКА*\n\n"
+            "Мастер анализирует ваше состояние по двум фото и даёт "
+            "персональные рекомендации по камням и практикам.\n\n"
+            "📸 *Что нужно прислать:*\n"
+            "1. Лицом в полный рост, глаза в объектив (без очков)\n"
+            "2. Спиной в полный рост\n"
+            "Оба фото — на нейтральном светлом фоне.\n\n"
+            "🔒 Фото нужны только для диагностики и после удаляются.\n"
+            "⏱ Ответ мастера — в течение 24 часов.",
+            parse_mode="Markdown",
+            reply_markup=get_diagnostic_keyboard()
+        )
+        return
+
+    if deep_link == "services":
+        from src.database.models import ServiceModel
+        from src.keyboards.services import get_services_keyboard
+        services = ServiceModel.get_all(active_only=True)
+        if services:
+            await message.answer(
+                "✨ *НАШИ УСЛУГИ*\n\nИндивидуальная работа с мастером.",
+                parse_mode="Markdown",
+                reply_markup=get_services_keyboard(services)
+            )
+        else:
+            await message.answer(
+                "✨ *УСЛУГИ МАСТЕРА*\n\nРасписание обновляется. Напишите мастеру напрямую:",
+                parse_mode="Markdown",
+                reply_markup=_get_master_contact_keyboard()
+            )
+        return
+
+    if deep_link == "shop":
+        from src.database.models import CategoryModel
+        from src.keyboards.shop import get_categories_keyboard
+        categories = CategoryModel.get_all()
+        await message.answer(
+            "💎 *ВИТРИНА*\n\nВыберите категорию:",
+            parse_mode="Markdown",
+            reply_markup=get_categories_keyboard(categories)
+        )
+        return
+
+    if deep_link == "selector":
+        await message.answer(
+            "💎 *ПОДБОРЩИК БРАСЛЕТА*\n\nЧто тебе нужно?",
+            parse_mode="Markdown",
+            reply_markup=_get_selector_keyboard()
+        )
+        return
+
+    if deep_link == "knowledge":
+        await message.answer(
+            "📚 *БАЗА ЗНАНИЙ*\n\nВыберите раздел:",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📚 Открыть базу знаний", callback_data="knowledge")],
+                [InlineKeyboardButton(text="🔍 Поиск по камням", callback_data="search_stones")],
+                [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
+            ])
+        )
+        return
+
+    if deep_link == "faq":
+        await message.answer(
+            "❓ *ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="❓ Открыть FAQ", callback_data="faq")],
+                [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
+            ])
+        )
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, bot: Bot):
     """Обработчик команды /start."""
@@ -68,87 +167,8 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
     
     await message.answer(welcome_text, reply_markup=get_main_keyboard())
 
-    # Обработка deep links с сайта magic-stone.org — сразу открываем нужный раздел
-    if deep_link in ('diagnostika', 'diagnostic'):
-        from src.keyboards.diagnostic import get_diagnostic_keyboard
-        await message.answer(
-            "🔮 *ЭНЕРГЕТИЧЕСКАЯ ДИАГНОСТИКА*\n\n"
-            "Мастер анализирует ваше состояние по двум фото и даёт "
-            "персональные рекомендации по камням и практикам.\n\n"
-            "📸 *Что нужно прислать:*\n"
-            "1. Лицом в полный рост, глаза в объектив (без очков)\n"
-            "2. Спиной в полный рост\n"
-            "Оба фото — на нейтральном светлом фоне.\n\n"
-            "🔒 Фото нужны только для диагностики и после удаляются.\n"
-            "⏱ Ответ мастера — в течение 24 часов.",
-            parse_mode="Markdown",
-            reply_markup=get_diagnostic_keyboard()
-        )
-    elif deep_link == 'services':
-        from src.database.models import ServiceModel
-        from src.keyboards.services import get_services_keyboard
-        services = ServiceModel.get_all(active_only=True)
-        if services:
-            await message.answer(
-                "✨ *НАШИ УСЛУГИ*\n\nИндивидуальная работа с мастером.",
-                parse_mode="Markdown",
-                reply_markup=get_services_keyboard(services)
-            )
-        else:
-            await message.answer(
-                "✨ *УСЛУГИ МАСТЕРА*\n\nРасписание обновляется. Напишите мастеру напрямую:",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="✍️ Написать мастеру",
-                                         url=f"https://t.me/{Config.MASTER_USERNAME}")],
-                    [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
-                ])
-            )
-    elif deep_link == 'shop':
-        from src.database.models import CategoryModel
-        from src.keyboards.shop import get_categories_keyboard
-        categories = CategoryModel.get_all()
-        await message.answer(
-            "💎 *ВИТРИНА*\n\nВыберите категорию:",
-            parse_mode="Markdown",
-            reply_markup=get_categories_keyboard(categories)
-        )
-    elif deep_link == 'selector':
-        from src.keyboards.inline import get_main_keyboard as _mk
-        await message.answer(
-            "💎 *ПОДБОРЩИК БРАСЛЕТА*\n\nЧто тебе нужно?",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="💰 Деньги и успех", callback_data="sel_money"),
-                 InlineKeyboardButton(text="💞 Любовь", callback_data="sel_love")],
-                [InlineKeyboardButton(text="🛡 Защита", callback_data="sel_protect"),
-                 InlineKeyboardButton(text="⚡ Энергия", callback_data="sel_energy")],
-                [InlineKeyboardButton(text="🌿 Спокойствие", callback_data="sel_calm"),
-                 InlineKeyboardButton(text="✨ Духовный рост", callback_data="sel_spirit")],
-                [InlineKeyboardButton(text="🌱 Здоровье", callback_data="sel_health"),
-                 InlineKeyboardButton(text="🧠 Ясность ума", callback_data="sel_clarity")],
-                [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
-            ])
-        )
-    elif deep_link == 'knowledge':
-        await message.answer(
-            "📚 *БАЗА ЗНАНИЙ*\n\nВыберите раздел:",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="📚 Открыть базу знаний", callback_data="knowledge")],
-                [InlineKeyboardButton(text="🔍 Поиск по камням", callback_data="search_stones")],
-                [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
-            ])
-        )
-    elif deep_link == 'faq':
-        await message.answer(
-            "❓ *ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ*",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="❓ Открыть FAQ", callback_data="faq")],
-                [InlineKeyboardButton(text="← МЕНЮ", callback_data="menu")],
-            ])
-        )
+    if deep_link:
+        await _send_deep_link_content(message, deep_link)
 
 
 @router.message(Command("admin"))

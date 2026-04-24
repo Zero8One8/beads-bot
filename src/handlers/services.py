@@ -18,7 +18,6 @@ from src.utils.helpers import format_price
 from src.services.notifications import AdminNotifier
 from src.services.stars_payment import StarsPayment
 from src.config import Config
-from src.config import Config
 
 logger = logging.getLogger(__name__)
 router = Router()
