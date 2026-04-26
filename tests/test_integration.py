@@ -69,7 +69,7 @@ async def run_tests():
         sys.exit(1)
 
     print(f"🔗 Supabase: {SUPABASE_URL}")
-    print(f"🔑 Service key: {SERVICE_KEY[:20]}...")
+    print("🔑 Service key: configured")
     print()
 
     async with httpx.AsyncClient(timeout=30) as client:
